@@ -171,7 +171,7 @@ const deleteComment = async (req, res) => {
   }
 };
 
-// TODO Delete Specific User
+//  Delete Specific User
 const deleteUser = async (req, res) => {
   try {
     const { userId } = req.user;
