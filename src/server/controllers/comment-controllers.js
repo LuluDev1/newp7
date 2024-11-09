@@ -171,17 +171,18 @@ const deleteComment = async (req, res) => {
   }
 };
 
-//  Delete Specific User
 const deleteUser = async (req, res) => {
-  try {
-    const { userId } = req.user;
+  const { userId } = req.user;
 
+  try {
     if (userId) {
-      const result = await sql`
-      DELETE FROM users WHERE userid=${userId}
-     
-    `;
+      // Delete associated comments first
       await sql`DELETE FROM comments WHERE userid=${userId}`;
+
+      // Then delete the user
+      const result = await sql`
+        DELETE FROM users WHERE userid=${userId}
+      `;
 
       if (result.rowCount === 0) {
         console.log(`No user found with id ${userId}`);
@@ -196,9 +197,46 @@ const deleteUser = async (req, res) => {
       return res.status(400).json({ message: "Bad request: Missing userId" });
     }
   } catch (error) {
-    console.error(`Error deleting user ${userId}:`, error);
+    console.error(`Error deleting user ${userId || "unknown"}:`, error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export { addComment, getAllComments, getUser, deleteComment, deleteUser };
+// Mark Comment as Viewed
+const markCommentAsViewed = async (req, res) => {
+  const { commentId } = req.params;
+  const { userId } = req.user;
+
+  try {
+    if (!commentId) {
+      return res.status(400).json({ message: "Comment ID is required" });
+    }
+
+    // Update the viewed_by array if the user hasn't viewed it already
+    const result = await sql`
+      UPDATE comments
+      SET viewed_by = array_append(viewed_by, ${userId}::UUID)
+      WHERE id = ${commentId} AND NOT (${userId} = ANY(viewed_by))
+    `;
+
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Comment not found or already viewed by user" });
+    }
+
+    return res.status(200).json({ message: "Comment marked as viewed" });
+  } catch (error) {
+    console.error("Error marking comment as viewed:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export {
+  addComment,
+  getAllComments,
+  getUser,
+  deleteComment,
+  deleteUser,
+  markCommentAsViewed,
+};
