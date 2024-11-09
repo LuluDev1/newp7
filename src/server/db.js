@@ -18,7 +18,8 @@ const createTables = async () => {
       id SERIAL PRIMARY KEY,
       userID UUID REFERENCES users(userID),
       comment VARCHAR(255) NOT NULL,
-      fileloc VARCHAR(255)
+      fileloc VARCHAR(255),
+      viewed_by UUID[] DEFAULT '{}'
     );`;
     console.log("Table 'comments' created successfully or already exists.");
   } catch (error) {
